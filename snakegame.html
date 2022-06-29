@@ -1,0 +1,520 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Snake the game</title>
+    <style>
+      *{
+        color: #ccc;
+      }
+      body{
+        background-color: #121212;
+        margin: 0;
+        padding: 0;
+      }
+      .tableRow{
+        display: flex;
+      }
+      .tableCell{
+        display: inline-flex;
+        width: 11px;
+        height: 11px;
+        border: 1px solid black;
+        box-sizing: border-box;
+        border-radius: 50%;
+        background-color: rgba(0,0,0,0.8);
+      }
+      .log{
+        line-height: 10px;
+        font-size: 11px;
+      }
+      #o2{
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+      #o2{
+        width: 300px;
+        position: absolute;
+        left: 100%;
+        background: rgba(0,0,0,0.1);
+        transform: translate(-100%,0);
+      }
+      .tableCell.active{
+        background-color: #0080ff;
+      }
+      .tableCell.current{
+        background-color: #ff0080;
+      }
+      .controlsColumn{
+        display: inline-block;
+      }
+      .controlsCell{
+        display: block;
+        width: 64px;
+        height: 64px;
+        border: 1px solid black;
+        margin: 2px;
+        text-align: center;
+        background-size: 100% auto;
+      }
+      .controlsCell span{
+        position: absolute;
+        transform: translate(-50%,-50%);
+        margin-top: 32px;
+        font-size: 32px;
+      }
+      .food{
+        background-color: #80ff00;
+      }
+      #snakeCenterWindow{
+        min-width: 300px;
+        min-height: 100px;
+        background: rgba(0,34,0,0.3);
+        position: absolute;
+        transform: translate(-50%,-50%);
+        left: 50%;
+        top: 50%;
+        text-align: center;
+        padding: 50px 0;
+        font-variant: small-caps;
+        font-size: 24px;
+        z-index: 100;
+      }
+      #lose div{
+        min-height: 30px;
+      }
+      #snakeConfig div{
+        height: 30px;
+      }
+      #snakeCenterWindow button{
+        font-variant: small-caps;
+        font-size: 18px;
+      }
+      #snakePlayground{
+        position: absolute;
+        transform: translate(-50%,-50%);
+        left: 50%;
+        top: 50%;
+      }
+      #scoreDisplay{
+        position: absolute;
+        transform: translate(0,0);
+        top:0;
+        right:0;
+        font-size: 32px;
+        background-color: rgba(0,0,0,0.3);
+        padding: 5px;
+        margin: 0;
+        min-width: 100px;
+        color: #fff;
+      }
+      #snakeCenterWindow select,
+      #snakeCenterWindow option,
+      #snakeCenterWindow button{
+        color: #111;
+      }
+      #mobileButtons{
+        display: none;
+      }
+      .mobileButton{
+        width: 50%;
+        height: 50%;
+        position: absolute;
+      }
+      .mobileButton.left{
+        left: -15%;
+        top: 50%;
+        transform: translate(0,-50%);
+      }
+      .mobileButton.right{
+        right: -15%;
+        transform: translate(0,-50%);
+        top: 50%;
+      }
+      .mobileButton.up{
+        top: -15%;
+        transform: translate(-50%,0);
+        left: 50%;
+      }
+      .mobileButton.down{
+        bottom: -15%;
+        transform: translate(-50%,0);
+        left: 50%;
+      }
+      .mobileButton span{
+        position: absolute;
+        transform: translate(-50%,-50%);
+        left: 50%;
+        top: 50%;
+        font-size: 400%;
+      }
+      
+    </style>
+</head>
+<body>
+
+<div id="snakeCenterWindow">
+  <div id="lose">
+    <div>
+      <span>Score:</span><span>&nbsp;</span><span id="wynikKurwa">0</span>
+    </div>
+    <div>
+      <span></span>
+      <div id="stats">
+      </div>
+    </div>
+    <div>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </div>
+  <div id="snakeConfig">
+      <div>
+          <span>Snake speed:</span>
+          <select id="speed">
+              <option value=400>1</option>
+              <option value=250>2</option>
+              <option value=150 selected>3</option>
+              <option value=100>4</option>
+              <option value=50>5</option>
+          </select>  
+      </div>
+      <div>
+          <span>Ground size:</span>
+          <select id="groundSize">
+              <option w=30 h=20 cs=24>small</option>
+              <option w=40 h=25 cs=20 selected>medium</option>
+              <option w=55 h=40 cs=16>large</option>
+          </select>
+      </div>
+      <div>
+          <button id="init" onclick="snakeInit(0)">Start</button>
+          <button onclick="snakeMobileInit()">Mobile</button>
+      </div>
+  </div>
+</div>
+    
+<div id="scoreDisplay">0</div>  
+  
+<div id="snakePlayground"></div>
+    
+<div id="mobileButtons">
+  <div class="mobileButton left" onclick="fU(37)"><span>&#8592;</span></div>
+  <div class="mobileButton right" onclick="fU(39)"><span>&#8594;</span></div>
+  <div class="mobileButton up" onclick="fU(38)"><span>&#8593;</span></div>
+  <div class="mobileButton down" onclick="fU(40)"><span>&#8595;</span></div>
+</div>
+  
+  
+<script>
+var g={
+    c:{ //constants
+        size:{
+            x: 40,
+            y: 25
+        },
+        cellSize: 14,
+        scale: 1,
+        snakeSpeed: null
+    },
+    v:{ //variables
+        currPos:{
+            x: 1,
+            y: 1
+        },
+        foodPos:{
+            x: null,
+            y: null
+        },
+        dir: 3,
+        snakeLength: 2,
+          
+        posLogFull: new Array(),
+        posLogCurrent: new Array(),
+      
+        score: 0,
+        scoreDisplay: 0
+    }
+}
+
+function getCell(x,y){
+    var a=document.getElementsByClassName("tableRow");
+
+    var b=a[y].children[x];
+    return b;
+}
+function randomCell(){
+    var a=document.getElementsByClassName("tableCell");
+    var b=a.length;
+    var c=Math.round(Math.random()*b);
+    return a[c];
+}
+  
+function popUp(v){
+  
+}
+  
+function snakeMobileInit(){
+  document.getElementById("mobileButtons").style.display="block";
+  snakeInit(0);
+}
+  
+function loseAlert(){
+  g.c.snakeSpeed=65536;
+  document.getElementById("snakePlayground").innerHTML=null;
+  configDisplay(true);
+}
+
+function snakeInit(s){
+    var a=document.getElementById("speed");
+    var b=a.selectedIndex;
+    var c=a.children[b];
+    var d=c.getAttribute("value");
+    g.c.snakeSpeed=d;
+    
+    var e=document.getElementById("groundSize");
+    var f=e.selectedIndex;
+    var h=e.children[f];
+    g.c.size.x=h.getAttribute("w");
+    g.c.size.y=h.getAttribute("h");
+    g.c.cellSize=h.getAttribute("cs");
+    
+    configDisplay(false);
+    
+    document.getElementById("init").setAttribute("onclick","snakeInit()");
+    if(s==0){
+        snakeStart();
+    }
+}
+    
+function configDisplay(v){
+  var a=document.getElementById("snakeCenterWindow");
+  var b=document.getElementById("snakeConfig");
+  var c=document.getElementById("lose");
+  
+  c.style.display="none";
+  
+  if(v==false){
+    a.style.display="none";
+    b.style.display="none";
+  }
+  if(v==true){
+    a.style.display="block";
+    c.style.display="block";
+  }
+}
+
+document.getElementById("lose").style.display="none";
+  
+  
+function snakeStart(){
+
+    function fA(){
+          var a=document.getElementById("snakePlayground");
+
+          var b="<div class=\"tableRow\"></div>";
+          var c="<div class=\"tableCell\"></div>";
+
+          a.innerHTML=b;
+          for(var i=0;i<g.c.size.y;i++){
+              a.innerHTML=a.innerHTML+b;
+            }
+
+          var d=document.getElementsByClassName("tableRow");
+          for(var i=0;i<d.length;i++){
+            d[i].innerHTML="";
+            d[i].setAttribute("y",i);
+            for(var j=0;j<=g.c.size.x;j++){
+              d[i].innerHTML=d[i].innerHTML+c;
+              var e=d[i].children[j];
+              e.setAttribute("x",j);
+              e.setAttribute("y",i);
+              e.style.width=g.c.cellSize+"px";
+              e.style.height=g.c.cellSize+"px";
+            }
+          }
+    };
+
+    function fD(){
+      var a=g.v.currPos;
+      var b=getCell(a.x,a.y);
+      var c=isNaN(b);
+      
+      b.className="tableCell active current";
+    }
+
+    function fE(dir){
+
+      if(g.v.dir==0){
+        g.v.currPos.y=g.v.currPos.y-g.c.scale;
+      }
+      if(g.v.dir==1){
+        g.v.currPos.x=g.v.currPos.x-g.c.scale;
+      }
+      if(g.v.dir==2){
+        g.v.currPos.y=g.v.currPos.y+g.c.scale;
+      }
+      if(g.v.dir==3){
+        g.v.currPos.x=g.v.currPos.x+g.c.scale;
+      }
+
+      var z=[g.v.currPos.x,g.v.currPos.y];
+
+      fR();
+      fD();
+      fK();
+      setTimeout(arguments.callee, g.c.snakeSpeed);
+    }
+
+    function fH(dir){
+      g.v.dir=dir;
+    }
+
+    function fK(){
+      g.v.posLogFull[0]=[g.v.currPos.x,g.v.currPos.y];
+      var a=g.v.posLogFull.length;
+      g.v.posLogFull[a]=[g.v.currPos.x,g.v.currPos.y];
+
+      fL();
+    }
+
+    var pos0=new Array();
+
+    function fL(){
+
+      var a=g.v.posLogFull.length;
+      var b=a-g.v.snakeLength;
+
+      if(b>0){
+        for(var i=0;i<g.v.snakeLength;i++){
+          pos0[i]=g.v.posLogFull[b+i];
+        }
+        fM();
+      }
+    }
+
+    function fM(){
+      var g=document.getElementsByClassName("active");
+      for(var i=0;i<g.length;i++){
+        g[i].className="tableCell";
+      }
+
+
+      var a=pos0;
+
+      for(var i=0;i<a.length;i++){
+        var posX=a[i][0];
+        var posY=a[i][1];
+
+        var c=getCell(posX,posY);
+        c.className="tableCell active";
+      }
+      
+      
+      fD();
+      fO();
+      fS();
+    }
+
+    function fN(){
+      var a=randomCell();
+      a.className="tableCell food";
+
+      var b=a.getAttribute("x");
+      var c=a.getAttribute("y");
+
+      g.v.foodPos.x=b;
+      g.v.foodPos.y=c;
+    }
+
+    function fO(){
+      var a=g.v.currPos;
+      var b=g.v.foodPos;
+
+      if(a.x==b.x){
+        if(a.y==b.y){
+          fN();
+          g.v.snakeLength++;
+          fT();
+        }
+      }
+    }
+
+    function fP(){
+      document.body.addEventListener("keydown",function(e){
+        if(e.keyCode==37 && g.v.dir!==3){
+          fH(1);
+        }
+        if(e.keyCode==38 && g.v.dir!==2){
+          fH(0);
+        }
+        if(e.keyCode==39 && g.v.dir!==1){
+          fH(3);
+        }
+        if(e.keyCode==40 && g.v.dir!==0){
+          fH(2);
+        }
+      },false);
+      
+      fU();
+    }
+
+    function fR(){
+      var a=g.v.currPos;
+      var b=g.c.size;
+      if(a.x<0||a.y<0||a.x>b.x||a.y>b.y){
+        loseAlert();
+      }
+    }
+  
+    function fS(){
+      g.v.posLogCurrent=pos0;
+      var a=g.v.posLogCurrent;
+      for(var i=0;i<a.length-1;i++){
+        var posX=a[i][0];
+        var posY=a[i][1];
+
+        if(g.v.currPos.x==posX && g.v.currPos.y==posY){
+          loseAlert();
+        }
+      }
+    }
+  
+  function fT(){
+    var a=10000/g.c.snakeSpeed;
+    g.v.score=g.v.score+a;
+    g.v.scoreDisplay=Math.round(g.v.score);
+    
+    var b=document.getElementById("scoreDisplay").innerHTML=g.v.scoreDisplay;
+    var c=document.getElementById("wynikKurwa").innerHTML=g.v.scoreDisplay;
+  }
+    
+
+  
+  
+    fA();
+    fD();
+    fE();
+    fN();
+    fP();    
+}
+  
+      function fU(d){
+      if(d==37 && g.v.dir!==3){
+        g.v.dir=1;
+      }
+      if(d==38 && g.v.dir!==2){
+        g.v.dir=0;
+      }
+      if(d==39 && g.v.dir!==1){
+        g.v.dir=3;
+      }
+      if(d==40 && g.v.dir!==0){
+        g.v.dir=2;
+      }
+      console.log(d);
+    }
+  
+    </script>
+  </body>
+</html>
